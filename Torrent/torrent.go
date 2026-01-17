@@ -12,19 +12,18 @@ import (
 
 // Structures:
 
-type bencodeInf struct {
-	Pieces       string
-	PiecesLength int
-	Length       int
-	Name         string
+type bencode_inf struct {
+	Pieces       string `bencode:"pieces"`
+	PiecesLength int	`bencode:"piece length"`
+	Length       int	`bencode:"length"`
+	Name         string	`bencode:"name"`
+}
+type bencode_torrent struct {
+	Announce string;
+	Info     bencode_inf
 }
 
-type bencodeTorrent struct {
-	Announce string
-	Info     bencodeInf
-}
-
-type TorrentFile struct {
+type Torrent_file struct {
 	Announce     string
 	InfoHash     [20]byte
 	PiecesHashes [][20]byte
@@ -35,7 +34,7 @@ type TorrentFile struct {
 
 // Functions:
 
-func Open(path string) (*bencodeTorrent, error) { // return bencoded struct from .torrent path
+func Open(path string) (*bencode_torrent, error) { // return bencoded struct from .torrent path
 	file, err := os.Open(path)
 
 	if err != nil {
@@ -43,7 +42,7 @@ func Open(path string) (*bencodeTorrent, error) { // return bencoded struct from
 	}
 
 	defer file.Close()
-	bto := bencodeTorrent{}
+	bto := bencode_torrent{}
 
 	err = bencode.Unmarshal(file, &bto)
 	if err != nil {
@@ -53,19 +52,19 @@ func Open(path string) (*bencodeTorrent, error) { // return bencoded struct from
 	return &bto, nil
 }
 
-func ToTorrent(bto *bencodeTorrent) (TorrentFile, error) {
+func To_torrent(bto *bencode_torrent) (Torrent_file, error) {
 	infoHash, err := hash(&bto.Info)
 	if err != nil {
 		fmt.Println("Error converting to Torrent:", err)
 		os.Exit(1)
 	}
 
-	piecesHashes, err := piecesHash(&bto.Info)
+	piecesHashes, err := pieces_hash(&bto.Info)
 	if err != nil {
 		fmt.Println("Error converting to Torrent:", err)
 		os.Exit(1)
 	}
-	return TorrentFile{
+	return Torrent_file{
 		Announce:     bto.Announce,
 		PieceLength:  bto.Info.PiecesLength,
 		InfoHash:     infoHash,
@@ -77,10 +76,10 @@ func ToTorrent(bto *bencodeTorrent) (TorrentFile, error) {
 
 // hashing functions: hashes info and pieces using SHA1
 
-func hash(i *bencodeInf) ([20]byte, error) {
+func hash(i *bencode_inf) ([20]byte, error) {
 
 	var buf bytes.Buffer
-	err := bencode.Marshal(&buf, *i)	// beencoding info struct into buf
+	err := bencode.Marshal(&buf, *i)	// bencoding info struct into buf
 
 	if err != nil {
 		return [20]byte{}, err
@@ -90,7 +89,7 @@ func hash(i *bencodeInf) ([20]byte, error) {
 	return hash, nil
 }
 
-func piecesHash(i *bencodeInf) ([][20]byte, error) {
+func pieces_hash(i *bencode_inf) ([][20]byte, error) {
 	hashLen := 20
 
 	buf := []byte(i.Pieces)
