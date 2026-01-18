@@ -102,7 +102,7 @@ func pieces_hash(i *bencode_inf) ([][20]byte, error) {
 	numHashes := len(buf) / hashLen			
 	hashes := make([][20]byte, numHashes)
 
-	for i := 0; i < numHashes; i++ {
+	for i := range numHashes {
 		copy(hashes[i][:], buf[i*hashLen:(i+1)*hashLen])	// copying each piece hash into the hashes slice
 	}
 
