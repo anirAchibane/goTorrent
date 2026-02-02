@@ -14,5 +14,6 @@ func (b Bit_field) Has_piece(index int) bool{
 	if target_byte == 1{
 		return true
 	}
+
 	return false
 }

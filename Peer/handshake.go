@@ -2,7 +2,6 @@ package peer
 
 import (
 	"errors"
-	"io"
 )
 
 type Handshake struct{
@@ -38,27 +37,21 @@ func Serialize_handshake(handshake *Handshake) ([]byte) {
 }
 
 // parse handshake
-func Parse_handshake(r io.Reader) (*Handshake, error){
+func Parse_handshake(buffer []byte) (*Handshake, error){
 	var Pstr_val [19]byte
 	var Info_hash_val [20]byte
 	var Peer_id_val [20]byte
 
-	buff := make([]byte, 68)
 
-	_ , err := io.ReadFull(r, buff)
-	if err != nil{
-		return nil,err
-	}
-
-	pstr_len := int(buff[0])
+	pstr_len := int(buffer[0])
 	if pstr_len != 19{
-		err = errors.New("Incompatible Protocol")
+		err := errors.New("Incompatible Protocol")
 		return nil, err
 	}
 	
-	_ = copy(Pstr_val[:], buff[1:20])
-	_ = copy(Info_hash_val[:], buff[28:48])
-	_ = copy(Peer_id_val[:], buff[48:68])
+	_ = copy(Pstr_val[:], buffer[1:20])
+	_ = copy(Info_hash_val[:], buffer[28:48])
+	_ = copy(Peer_id_val[:], buffer[48:68])
 
 	h := Handshake{
 		Pstr: Pstr_val,
