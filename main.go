@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
-	torrent "goTorrent/Torrent"
-	peer "goTorrent/Peer"
 	"crypto/rand"
-	//torrent "goTorrent/Torrent"
+	"fmt"
+	download "goTorrent/Download"
+	peer "goTorrent/Peer"
+	torrent "goTorrent/Torrent"
 	"os"
 )
 
@@ -24,6 +24,7 @@ func main() {
 		os.Exit(1)
 	}
 	
+	fmt.Println(bencoded_torrent.Announce)
 	// Converting bencoded structure to TorrentFile structure:
 	torrent_file, err := torrent.To_torrent(bencoded_torrent)
 	if err != nil {
@@ -38,7 +39,7 @@ func main() {
 	fmt.Println("Piece Length:", torrent_file.PieceLength)
 	fmt.Printf("Info Hash: %x\n", torrent_file.InfoHash)
 	fmt.Println("Number of Pieces:", len(torrent_file.PiecesHashes))
-	
+	fmt.Println("----------------------------------------------------------")
 	// retreiving peers:
 	var peer_id [20]byte	// generating random peer id
 	_, err = rand.Read(peer_id[:])
@@ -57,7 +58,35 @@ func main() {
 	if err != nil{
 		fmt.Println("Parsing peers failed: ", err)
 	}
-	for i := range peers{
-		fmt.Println(i,"/ ip: ",peers[i].IP,", port: ", peers[i].Port) 
+
+	torrent_task := download.Torrent_task{
+		Self_ID: peer_id,
+		Name: torrent_file.Name,
+		Length: torrent_file.Length,
+		Piece_length: torrent_file.PieceLength,
+		Piece_hashes: torrent_file.PiecesHashes,
+		Info_hash: torrent_file.InfoHash,
+		Peers: peers,
 	}
+
+	buffer, err := torrent_task.Download()
+	if err != nil{
+		fmt.Println("Couldn't complete download: ", err)
+		os.Exit(1)
+	}
+
+	output_path := os.Args[2]
+	outfile , err := os.Create(output_path)
+	if err != nil{
+		fmt.Println("Couldn't create output path:", err)
+		os.Exit(1)
+	}
+
+	defer outfile.Close()
+	_, err = outfile.Write(buffer)
+	if err != nil{
+		fmt.Println("Couldn't complete installation: ", err)
+		os.Exit(1)
+	}
+
 }

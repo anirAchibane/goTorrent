@@ -13,7 +13,7 @@ import (
 type Peer_client struct {
 	Bitfield  peer.Bit_field
 	Peer       peer.Peer
-	isChoked   bool
+	IsChoked   bool
 	Connection net.Conn
 }
 
@@ -45,7 +45,7 @@ func Connect_to_peer(p *peer.Peer, info_hash [20]byte, self_peer_id [20]byte) (*
 
 	return &Peer_client{
 		Peer:       *p,
-		isChoked:   true,
+		IsChoked:   true,
 		Bitfield: bitfield,
 		Connection: conn,
 	}, nil
