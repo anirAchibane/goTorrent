@@ -64,9 +64,9 @@ func (t *Torrent_task) Download() ([]byte, error){
 
 		done_piece++
 
-		percentage := float64(done_piece) / float64(len(t.Piece_hashes))
+		percentage := (float64(done_piece) / float64(len(t.Piece_hashes)))*100
 		number_of_workers := runtime.NumGoroutine() - 1
-		log.Println(percentage,"% Downloaded piece ", res.Index, " from ",number_of_workers, "peers")
+		log.Println("(",int(percentage),"%) ---- Downloaded piece ", res.Index, " from ",number_of_workers, "peers")
 	}
 	close(work_queue)
 
@@ -116,7 +116,7 @@ func (t *Torrent_task) start_worker(p peer.Peer, work_queue chan *Piece_work, re
 		if err != nil{
 			log.Printf("Couldn't download piece: %s", err.Error())
 			work_queue <- pw
-			continue
+			return
 		}
 
 		err = check_intergrity(pw,result_buf)
@@ -147,32 +147,65 @@ func (t *Torrent_task) attempt_download_piece(c *Peer_client, pw *Piece_work) ([
 	
 	begin := 0
 	piece_content := make([]byte, pw.Length)
+	
 	for begin < pw.Length{
 		length := 16384
 		if begin + length >= pw.Length{
 			length = pw.Length - begin
 		}
-		c.Send_request(pw.Index, begin, length)
 		
-		var message *peer.Message
+		err := c.Send_request(pw.Index, begin, length)
+		if err != nil{
+			return nil, err
+		}
+		
 		for {
-			var err error
-			message, err = c.Read()
+
+			message, err := c.Read()
 			if err != nil{
 				return nil, err
 			}
-			if message != nil && message.ID == 7{
-				break
+
+			if message == nil{
+				continue
+			}
+
+			switch message.ID{
+			case peer.MsgChoke:
+				c.IsChoked = true
+				return nil, fmt.Errorf("Choked by Peer During Download")
+			
+			case peer.MsgUnchoke:
+				c.IsChoked = false
+			
+			case peer.MsgHave:
+				index := binary.BigEndian.Uint32(message.Payload)
+				c.Bitfield.Have_update(int(index))
+			
+			case peer.MsgPiece:
+				if len(message.Payload) < 8{
+					return nil, fmt.Errorf("Invalid Piece Message!")
+				}
+
+				message_index := binary.BigEndian.Uint32(message.Payload[:4])
+				message_begin := binary.BigEndian.Uint32(message.Payload[4:8])
+
+				if int(message_index) != pw.Index {
+					continue
+				}
+				
+				if int(message_begin) != begin {
+					continue
+				}
+
+				begin += copy(piece_content[begin:], message.Payload[8:])
+
+				goto next_block
 			}
 		}
 
-		message_index := binary.BigEndian.Uint32(message.Payload[:4])
-
-		if int(message_index) != pw.Index{
-			return nil, fmt.Errorf("Invalid Piece ID!")
-		}
+		next_block:
 		
-		begin += copy(piece_content[begin:], message.Payload[8:])
 	}
 
 	return piece_content, nil
