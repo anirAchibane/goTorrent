@@ -34,7 +34,7 @@ type Torrent_task struct{
 
 // main download function:
 func (t *Torrent_task) Download() ([]byte, error){
-	fmt.Println("Starting download for", t.Name+"...")
+	fmt.Println("Starting Download for", t.Name+"...")
 
 	work_queue := make(chan *Piece_work, len(t.Piece_hashes))
 	results := make(chan *Piece_result, len(t.Piece_hashes))
@@ -50,6 +50,7 @@ func (t *Torrent_task) Download() ([]byte, error){
 	}
 
 	// download from peers
+	fmt.Println("Connecting With Peers...")
 	for _, peer := range t.Peers{
 		go t.start_worker(peer, work_queue, results)
 	}
@@ -78,12 +79,10 @@ func (t *Torrent_task) Download() ([]byte, error){
 func (t *Torrent_task) start_worker(p peer.Peer, work_queue chan *Piece_work, results chan *Piece_result) {
 	client, err := Connect_to_peer(&p,t.Info_hash,t.Self_ID)
 	if err != nil{
-		log.Println(err.Error())
 		return
 	}
 
 	defer client.Connection.Close()
-	log.Printf("Completed handshake with peer", p.IP)
 
 	client.Send_unchoke()
 	client.Send_interested()
@@ -101,7 +100,6 @@ func (t *Torrent_task) start_worker(p peer.Peer, work_queue chan *Piece_work, re
 
 		if msg.ID == peer.MsgUnchoke {
 			client.IsChoked = false
-			log.Printf("Peer %s unchoked us", p.IP)
 			break
 		}
 	}
@@ -114,7 +112,6 @@ func (t *Torrent_task) start_worker(p peer.Peer, work_queue chan *Piece_work, re
 
 		result_buf, err := t.attempt_download_piece(client, pw)
 		if err != nil{
-			log.Printf("Couldn't download piece: %s", err.Error())
 			work_queue <- pw
 			return
 		}

@@ -24,7 +24,6 @@ func main() {
 		os.Exit(1)
 	}
 	
-	fmt.Println(bencoded_torrent.Announce)
 	// Converting bencoded structure to TorrentFile structure:
 	torrent_file, err := torrent.To_torrent(bencoded_torrent)
 	if err != nil {
@@ -32,14 +31,10 @@ func main() {
 		os.Exit(1)
 	}
 	
-	fmt.Println("Successfully parsed torrent file:")
+	fmt.Println("Successfully Parsed Torrent File:")
 	fmt.Println("Announce URL:", torrent_file.Announce)
 	fmt.Println("Name:", torrent_file.Name)
-	fmt.Println("Length:", torrent_file.Length)
-	fmt.Println("Piece Length:", torrent_file.PieceLength)
-	fmt.Printf("Info Hash: %x\n", torrent_file.InfoHash)
 	fmt.Println("Number of Pieces:", len(torrent_file.PiecesHashes))
-	fmt.Println("----------------------------------------------------------")
 	// retreiving peers:
 	var peer_id [20]byte	// generating random peer id
 	_, err = rand.Read(peer_id[:])
