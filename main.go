@@ -20,7 +20,7 @@ func main() {
 
 	bencoded_torrent, err := torrent.Open(torrent_path)
 	if err != nil {
-		fmt.Println("Error parsing torrent: ", err)
+		fmt.Println("Error parsing torrent:", err)
 		os.Exit(1)
 	}
 	
